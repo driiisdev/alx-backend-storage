@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 
-"""
-This module provides the class Cache
-"""
-
-from functools import wraps
+import functools
 import redis
 import requests
-from requests_html import HTMLSession
+from requests_html import HTML
+import typing
 
 
 def counter(method: typing.Callable):
@@ -23,7 +20,10 @@ def counter(method: typing.Callable):
         key = 'count:' + url
         self._redis.incr(key)
         self._redis.expire(key, 10)
-        return counter(url, *args, **kwargs)
+        response = requests.get(url)
+        content = HTML(response.content)
+        return content
+
     return count
 
 
@@ -40,14 +40,21 @@ class Cache:
         self._redis.flushdb()
 
     @counter
-    def get_page(self, url: str) -> str:
+    def get_page(self, url: str) -> typing.Union[str, HTML]:
         """
         This function ses the requests module to obtain
         the HTML content of a particular URL and returns it
         """
-        session = HTMLSession()
-        response = session.get(url)
-        return response.text
+        key = 'count:' + url
+        count = self._redis.get(key)
+        if count:
+            return HTML(count.decode('utf-8'))
+        else:
+            response = requests.get(url)
+            content = HTML(response.content)
+            self._redis.set(key, content.content.decode('utf-8'))
+            self._redis.expire(key, 10)
+            return content
 
 
 if __name__ == '__main__':
