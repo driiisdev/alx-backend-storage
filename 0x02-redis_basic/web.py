@@ -7,8 +7,7 @@ This module provides the class Cache
 from functools import wraps
 import redis
 import requests
-import requests_html
-import typing
+from requests_html import HTMLSession
 
 
 def counter(method: typing.Callable):
@@ -46,12 +45,12 @@ class Cache:
         This function ses the requests module to obtain
         the HTML content of a particular URL and returns it
         """
-        response = requests.get(url)
+        session = HTMLSession()
+        response = session.get(url)
         return response.text
 
 
 if __name__ == '__main__':
     url = 'http://www.google.com'
     cache = Cache()
-    print(cache)
-    cache.get_page(url)
+    print(cache.get_page(url))
